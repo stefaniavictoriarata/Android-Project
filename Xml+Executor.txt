@@ -1,0 +1,112 @@
+----ATENTIE FARA DOWNLOAD sau HTTP CONNECTION---------------
+<uses-permission android:name="android.permission.INTERNET" />
+
+public class XmlParserActivity extends AppCompatActivity {
+
+    ListView lvXml;
+
+    List<Student> students;
+
+    XmlParser parser;
+    public static final String urlString = "https://raw.githubusercontent.com/stefaniavictoriarata/Xml-Practice/main/Students.xml";
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_xml_parser);
+
+        lvXml = findViewById(R.id.xml_lv);
+        students = new ArrayList<>();
+
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        executorService.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    URL url = new URL(urlString);
+                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                    InputStream inputStream = connection.getInputStream();
+
+                    parser = new XmlParser();
+                    students = parser.parse(inputStream);
+
+                    StudentAdaptor adaptor = new StudentAdaptor(getApplicationContext(), R.layout.row_lv_students, students, getLayoutInflater());
+                    lvXml.setAdapter(adaptor);
+
+                    inputStream.close();
+                    connection.disconnect();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+    }
+
+package com.example.scoala.parser;
+
+import android.util.Xml;
+
+import com.example.scoala.XmlParserActivity;
+import com.example.scoala.utils.Student;
+
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserException;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+
+public class XmlParser {
+    private List<Student> students = new ArrayList<>();
+
+    private Student s;
+
+    String text;
+
+    public List<Student> parse(InputStream inputStream)
+    {
+        XmlPullParser parser = Xml.newPullParser();
+        try {
+            parser.setInput(inputStream, "utf-8");
+            int eventType = parser.getEventType();
+            while(eventType != XmlPullParser.END_DOCUMENT)
+            {
+                String tagName = parser.getName();
+                switch(eventType)
+                {
+                    case XmlPullParser.START_TAG:
+                            if(tagName.equalsIgnoreCase("Student"))
+                            {
+                                s = new Student();
+                            }
+                            break;
+                    case XmlPullParser.TEXT:
+                        text = parser.getText();
+                        break;
+                    case XmlPullParser.END_TAG:
+                        if(tagName.equalsIgnoreCase("Student"))
+                            students.add(s);
+                        else if(tagName.equalsIgnoreCase("Name"))
+                            s.setName(text);
+                        else if(tagName.equalsIgnoreCase("Id"))
+                            s.setId(Integer.parseInt(text));
+                        else if(tagName.equalsIgnoreCase("Integralist"))
+                            s.setIntegralist(text.equalsIgnoreCase("YES"));
+                        break;
+                    default:
+                        break;
+                }
+                eventType = parser.next();
+            }
+        } catch (XmlPullParserException e) {
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return students;
+    }
+
+
+
+}
+

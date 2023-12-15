@@ -1,0 +1,69 @@
+-----METODA VOID - lista din Main
+public class JsonParser implements Runnable {
+        public static final String KEY_JSON_STUDENT = "Student";
+
+        public static final String KEY_JSON_NAME = "name";
+
+        public static final String KEY_JSON_ID = "id";
+
+        public static final String KEY_JSON_INTEG = "integralist";
+        public String url = "https://raw.githubusercontent.com/stefaniavictoriarata/Android-Project/main/Student.json";
+
+       // private final List<Student> students = new ArrayList<>();
+        public void getStudentsFromJson(String json)
+        {
+            if(json != null) {
+                try {
+                    JSONObject jsonObject = new JSONObject(json);
+                    JSONArray array = jsonObject.getJSONArray(KEY_JSON_STUDENT);
+                    for (int i = 0; i < array.length(); i++) {
+                        JSONObject studentJson = array.getJSONObject(i);
+                        String name = studentJson.getString(KEY_JSON_NAME);
+                        int id = studentJson.getInt(KEY_JSON_ID);
+                        String integ = studentJson.getString(KEY_JSON_INTEG);
+                        boolean integralist = integ.equals("true");
+                        Student s = new Student(name, id, integralist);
+                        students.add(s);
+                    }
+                } catch (JSONException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            else
+            {
+                Log.e("Json Parsing", "JSON Object inexistent");
+            }
+        }
+
+        @Override
+        public void run() {
+            HttpConnection connection = new HttpConnection(url);
+            try {
+                String result = connection.readHttp();
+                if(result != null)
+                {
+                    JsonParser jsonParser = new JsonParser();
+                    jsonParser.getStudentsFromJson(result);
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    StudentAdaptor adaptor = (StudentAdaptor) lv.getAdapter();
+                    adaptor.notifyDataSetChanged();;
+                }
+            });
+        }
+    }
+
+
+}
+
+
+
+IN ON CREATE DUPA INIT
+ JsonParser parser = new JsonParser();
+        Thread t = new Thread(parser);
+        t.start();

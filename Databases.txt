@@ -1,0 +1,323 @@
+ implementation ("androidx.room:room-runtime:2.5.1")
+    annotationProcessor("androidx.room:room-compiler:2.5.1")
+
+---CLASA MAI MICA
+package com.example.scoala.utils;
+
+import android.os.Parcel;
+import android.os.Parcelable;
+
+import androidx.annotation.NonNull;
+import androidx.room.Entity;
+import androidx.room.ForeignKey;
+import androidx.room.Ignore;
+import androidx.room.PrimaryKey;
+
+import java.io.Serializable;
+
+@Entity(tableName = "Students", foreignKeys = @ForeignKey(entity = School.class, parentColumns = "id", childColumns = "schoolId"))
+public class Student implements Serializable {
+
+    private String name;
+    @PrimaryKey
+    private int id;
+    private boolean integralist;
+
+    private int schoolId;
+
+    @Ignore
+    public Student() {
+    }
+
+    @Ignore
+    public Student(String name, int id, boolean integralist) {
+        this.name = name;
+        this.id = id;
+        this.integralist = integralist;
+    }
+
+    public Student(String name, int id, boolean integralist, int schoolId) {
+        this.name = name;
+        this.id = id;
+        this.integralist = integralist;
+        this.schoolId = schoolId;
+    }
+
+    public int getSchoolId() {
+        return schoolId;
+    }
+
+    public void setSchoolId(int schoolId) {
+        this.schoolId = schoolId;
+    }
+
+    //    protected Student(Parcel in) {
+//        name = in.readString();
+//        id = in.readInt();
+//        integralist = in.readByte() != 0;
+//    }
+
+//    public static final Creator<Student> CREATOR = new Creator<Student>() {
+//        @Override
+//        public Student createFromParcel(Parcel in) {
+//            return new Student(in);
+//        }
+//
+//        @Override
+//        public Student[] newArray(int size) {
+//            return new Student[size];
+//        }
+//    };
+
+    public boolean isIntegralist() {
+        return integralist;
+    }
+
+    public void setIntegralist(boolean integralist) {
+        this.integralist = integralist;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+//
+//    @Override
+//    public int describeContents() {
+//        return 0;
+//    }
+
+//    @Override
+//    public void writeToParcel(@NonNull Parcel parcel, int i) {
+//        parcel.writeString(name);
+//        parcel.writeInt(id);
+//        parcel.writeByte((byte) (integralist ? 1 : 0));
+//    }
+}
+
+----------CLASA MARE
+package com.example.scoala.utils;
+
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
+
+@Entity(tableName = "Schools")
+public class School {
+    @PrimaryKey(autoGenerate = true)
+    private int id;
+    private String name;
+    private int location;
+
+    @Override
+    public String toString() {
+        return "School{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", location=" + location +
+                '}';
+    }
+
+    public School() {
+    }
+
+    public School(int id, String name, int location) {
+        this.id = id;
+        this.name = name;
+        this.location = location;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public int getLocation() {
+        return location;
+    }
+
+    public void setLocation(int location) {
+        this.location = location;
+    }
+}
+
+
+--------BAZA DE DATE
+package com.example.scoala.databases;
+
+import android.content.Context;
+
+import androidx.room.Database;
+import androidx.room.Room;
+import androidx.room.RoomDatabase;
+
+import com.example.scoala.utils.School;
+import com.example.scoala.utils.Student;
+
+@Database(entities = {Student.class, School.class}, version = 1, exportSchema = false)
+public abstract class StudentDb extends RoomDatabase {
+    private final static String DB_NAME = "Students.db";
+    private static StudentDb INSTANCE;
+
+    public static StudentDb getInstance(Context context)
+    {
+        if(INSTANCE == null)
+        {
+            INSTANCE = Room.databaseBuilder(context, StudentDb.class, DB_NAME).allowMainThreadQueries()
+                    .fallbackToDestructiveMigration().build();
+        }
+        return INSTANCE;
+    }
+
+    public abstract StudentDao getStudentDao();
+
+    public abstract SchoolDao getSchoolDao();
+}
+
+----------DAO
+package com.example.scoala.databases;
+
+import androidx.room.Dao;
+import androidx.room.Insert;
+import androidx.room.Query;
+
+import com.example.scoala.utils.School;
+
+import java.util.List;
+
+@Dao
+public interface SchoolDao {
+
+    @Insert
+    void insert(School school);
+
+    @Query("SELECT * FROM Schools WHERE name=:name")
+    List<School> selectSchools(String name);
+
+    @Query("SELECT * FROM Schools")
+    List<School> selectAllSchools();
+}
+
+package com.example.scoala.databases;
+
+import androidx.room.Dao;
+import androidx.room.Insert;
+import androidx.room.Query;
+
+import com.example.scoala.utils.Student;
+
+import java.util.List;
+
+@Dao
+public interface StudentDao {
+
+    @Insert
+    void insert(Student s);
+
+    @Query("SELECT * FROM Students")
+    List<Student> selectAllStudents();
+
+    @Query("DELETE FROM Students")
+    void deleteAllStudents();
+
+    @Query("DELETE FROM Students WHERE name=:name")
+    void deleteStudent(String name);
+
+}
+
+METODA DE INSERARE
+public void insertStudentInDb(Student s)
+    {
+        StudentDb studentDb = StudentDb.getInstance(getApplicationContext());
+        Random random = new SecureRandom();
+        School school = new School(random.nextInt(), "Ion Creanga", 5);
+        s.setSchoolId(school.getId());
+        studentDb.getSchoolDao().insert(school);
+        studentDb.getStudentDao().insert(s);
+    }
+
+AFISARE IN ACTIVITATE
+   
+
+package com.example.scoala;
+
+import androidx.appcompat.app.AppCompatActivity;
+
+import android.os.Bundle;
+import android.widget.ListView;
+
+import com.example.scoala.databases.StudentDb;
+import com.example.scoala.utils.Student;
+import com.example.scoala.utils.StudentAdaptor;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class DatabaseActivity extends AppCompatActivity {
+
+    ListView lvDb;
+
+    List<Student> students = new ArrayList<>();
+    private void loadStudentList()
+    {
+        StudentDb studentDb = StudentDb.getInstance(getApplicationContext());
+        List<Student> listFromDb = studentDb.getStudentDao().selectAllStudents();
+        if(!listFromDb.isEmpty())
+        {
+            students.addAll(listFromDb);
+            StudentAdaptor adaptor = (StudentAdaptor) lvDb.getAdapter();
+            adaptor.notifyDataSetChanged();
+        }
+    }
+
+    private void deleteStudentFromDb(String name)
+    {
+        StudentDb studentDb = StudentDb.getInstance(getApplicationContext());
+        studentDb.getStudentDao().deleteStudent(name);
+        StudentAdaptor adaptor = (StudentAdaptor) lvDb.getAdapter();
+        adaptor.notifyDataSetChanged();
+    }
+
+    private void deleteAllStudents()
+    {
+        StudentDb studentDb = StudentDb.getInstance(getApplicationContext());
+        studentDb.getStudentDao().deleteAllStudents();
+        StudentAdaptor adapter = (StudentAdaptor) lvDb.getAdapter();
+        adapter.notifyDataSetChanged();
+    }
+
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_database);
+        
+        lvDb = findViewById(R.id.db_lv);
+        StudentAdaptor adaptor = new StudentAdaptor(getApplicationContext(), R.layout.row_lv_students, students, getLayoutInflater());
+        lvDb.setAdapter(adaptor);
+        loadStudentList();
+    }
+}
+}
+

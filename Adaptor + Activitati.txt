@@ -1,0 +1,84 @@
+In clasa CustomAdapter
+
+private int resource; - id-ul layoutului
+
+private List<Object> list;
+
+private Inflater inflater;
+
+---componentele vizuale
+
+ public GroceryAdapter(@NonNull Context context, int resource, @NonNull List<Grocery> groceries, LayoutInflater inflater) {
+        super(context, resource, groceries);
+        this.resource = resource;
+        this.groceries = groceries;
+        this.inflater = inflater;
+    }, unde context = getApplicationContext();
+
+private void initVisualComponents(View row) --pt fiecare rand/item
+    {
+        textName = row.findViewById(R.id.text_name2);
+        textPrice = row.findViewById(R.id.text_price2);
+        textPerishable = row.findViewById(R.id.text_perishable);
+    }
+
+private void populateVisualComponents(Grocery g) --for every value from the list
+    {
+        textName.setText(g.getName());
+        textPrice.setText(Float.toString(g.getPrice()));
+        String p = g.isPerishable() ? getContext().getString(R.string.is_p) : getContext().getString(R.string.isnot_p);
+        textPerishable.setText(p);
+    }
+--to acces smth from string file getContext().getString(id string)
+
+
+------Se creeaza randul cu metoda inflate a atributului clasei inflater: inflater.inflate(this.resource, parent, false);
+-resource = id for layout
+-parent = parintele=lv transmis ca parametru
+-false = randul nu este parinte
+
+
+ @NonNull
+    @Override
+    public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+        //binding the xml layout file that will be filled in with data with the java class
+        View row = inflater.inflate(this.resource, parent, false);
+        //initialize the visual components
+        initVisualComponents(row);
+        //get the object from a certain position from the object list
+        Movie movie = objects.get(position);
+        //populate the visual components
+        populateVisualComponents(movie);
+
+        return row;
+    }
+
+IN MAIN
+
+CustomAdapter adapter = new CustomAdapter(getApplicationContext(), R.layout.id_layout, objects, getLayoutInflater());
+listView.setAdapter(adapter);
+
+  ActivityResultLauncher<Intent> addLauncher;
+
+ public ActivityResultCallback<ActivityResult> getCallback()
+    {
+        return new ActivityResultCallback<ActivityResult>() {
+            @Override
+            public void onActivityResult(ActivityResult result) {
+                if(result.getData() != null)
+                {
+                    Student s = (Student) result.getData().getParcelableExtra(AddStudentActivity.KEY_STUDENT);
+                    students.add(s);
+                    StudentAdaptor adaptor = (StudentAdaptor) lv.getAdapter();
+                    adaptor.notifyDataSetChanged();
+                }
+            }
+        };
+    }
+
+    private ActivityResultLauncher<Intent> registerAddLauncher()
+    {
+        ActivityResultCallback<ActivityResult> callback = getCallback();
+        return registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), callback);
+    }
+
